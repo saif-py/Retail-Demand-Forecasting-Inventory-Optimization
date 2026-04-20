@@ -85,20 +85,27 @@ kaggle competitions download -c walmart-recruiting-store-sales-forecasting
 unzip walmart-recruiting-store-sales-forecasting.zip
 
 # Run (uses synthetic data if train.csv not found)
-python forecast.py
+python Forecast.py
 ```
 
 ---
 
 ## Output
 
-Running `forecast.py` produces `forecast_analysis.png` — a 5-panel dashboard:
+Running `Forecast.py` produces `forecast_analysis.png` — a 5-panel dashboard:
 
 1. Full historical + forecast with confidence intervals
 2. Week-by-week error comparison (MA vs Prophet)
 3. Model accuracy bar chart with % improvement
 4. Trend & seasonality decomposition
 5. Annualized business impact visualization
+
+It also creates Tableau-ready CSV exports in `tableau_exports/`:
+
+1. `test_predictions.csv` (actual vs MA vs Prophet + errors)
+2. `history_forecast_components.csv` (history + Prophet forecast + CI + components)
+3. `model_metrics.csv` (MAE/RMSE/MAPE/Bias + improvement vs baseline)
+4. `inventory_impact.csv` (safety stock + holding cost + annual impact)
 
 ---
 

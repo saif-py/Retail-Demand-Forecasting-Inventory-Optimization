@@ -11,6 +11,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+from pathlib import Path
 from prophet import Prophet
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 import warnings
@@ -200,7 +201,76 @@ def inventory_impact(actual, prophet_preds, ma_preds, holding_cost_pct=0.25, uni
     }
 
 
-# ── 8. VISUALIZATIONS ─────────────────────────────────────────────────────────
+# ── 8. TABLEAU CSV EXPORT ─────────────────────────────────────────────────────
+def export_tableau_csvs(train, test, ma_preds, prophet_preds, forecast_full,
+                        metrics_rows, impact, output_dir="tableau_exports"):
+    """
+    Export Tableau-friendly CSV files while preserving existing script outputs.
+    """
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    # Test-window predictions and errors for direct model comparison sheets.
+    test_results = test[["date", "weekly_sales"]].copy()
+    test_results["moving_average_pred"] = ma_preds
+    test_results["prophet_pred"] = prophet_preds
+    test_results["ma_error"] = test_results["weekly_sales"] - test_results["moving_average_pred"]
+    test_results["prophet_error"] = test_results["weekly_sales"] - test_results["prophet_pred"]
+    test_results["ma_abs_error"] = test_results["ma_error"].abs()
+    test_results["prophet_abs_error"] = test_results["prophet_error"].abs()
+    if "isholiday" in test.columns:
+        test_results["isholiday"] = test["isholiday"].values
+
+    history = pd.concat(
+        [train[["date", "weekly_sales"]], test[["date", "weekly_sales"]]],
+        ignore_index=True,
+    ).sort_values("date")
+    history["data_split"] = np.where(history["date"] <= train["date"].max(), "train", "test")
+
+    forecast_cols = ["ds", "yhat", "yhat_lower", "yhat_upper", "trend", "yearly"]
+    available_cols = [col for col in forecast_cols if col in forecast_full.columns]
+    forecast_export = forecast_full[available_cols].rename(
+        columns={
+            "ds": "date",
+            "yhat": "prophet_pred",
+            "yhat_lower": "prophet_pred_lower",
+            "yhat_upper": "prophet_pred_upper",
+        }
+    )
+
+    baseline_export = test[["date"]].copy()
+    baseline_export["moving_average_pred"] = ma_preds
+
+    history_forecast = (
+        forecast_export
+        .merge(history, on="date", how="left")
+        .merge(baseline_export, on="date", how="left")
+    )
+
+    metrics_df = pd.DataFrame(metrics_rows).copy()
+    if not metrics_df.empty:
+        baseline_mae = metrics_df.loc[metrics_df["model"] == "Moving Average (12-week)", "MAE"]
+        baseline_rmse = metrics_df.loc[metrics_df["model"] == "Moving Average (12-week)", "RMSE"]
+        baseline_mape = metrics_df.loc[metrics_df["model"] == "Moving Average (12-week)", "MAPE"]
+
+        if not baseline_mae.empty and baseline_mae.iloc[0] != 0:
+            metrics_df["MAE_improvement_vs_baseline_pct"] = (1 - metrics_df["MAE"] / baseline_mae.iloc[0]) * 100
+        if not baseline_rmse.empty and baseline_rmse.iloc[0] != 0:
+            metrics_df["RMSE_improvement_vs_baseline_pct"] = (1 - metrics_df["RMSE"] / baseline_rmse.iloc[0]) * 100
+        if not baseline_mape.empty and baseline_mape.iloc[0] != 0:
+            metrics_df["MAPE_improvement_vs_baseline_pct"] = (1 - metrics_df["MAPE"] / baseline_mape.iloc[0]) * 100
+
+    impact_df = pd.DataFrame([impact]).copy()
+
+    test_results.to_csv(output_path / "test_predictions.csv", index=False)
+    history_forecast.to_csv(output_path / "history_forecast_components.csv", index=False)
+    metrics_df.to_csv(output_path / "model_metrics.csv", index=False)
+    impact_df.to_csv(output_path / "inventory_impact.csv", index=False)
+
+    return output_path.resolve()
+
+
+# ── 9. VISUALIZATIONS ─────────────────────────────────────────────────────────
 def plot_forecast(train, test, ma_preds, prophet_preds, forecast_full, model, impact):
     fig = plt.figure(figsize=(18, 14))
     gs  = gridspec.GridSpec(3, 2, figure=fig, hspace=0.45, wspace=0.35)
@@ -314,6 +384,19 @@ def main():
 
     # ── Business Impact ───────────────────────────────────────────────────────
     impact = inventory_impact(test["weekly_sales"].values, prophet_preds, ma_preds)
+
+    # ── Export for Tableau ────────────────────────────────────────────────────
+    print("\nExporting Tableau-ready CSVs...")
+    export_dir = export_tableau_csvs(
+        train,
+        test,
+        ma_preds,
+        prophet_preds,
+        forecast_full,
+        [ma_metrics, prophet_metrics],
+        impact,
+    )
+    print(f"  Saved CSVs in: {export_dir}")
 
     # ── Visualize ─────────────────────────────────────────────────────────────
     print("\nGenerating visualizations...")
