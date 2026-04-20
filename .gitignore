@@ -1,0 +1,16 @@
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+
+# Local datasets and archives
+train.csv
+*.zip
+
+# Generated outputs
+forecast_analysis.png
+forecast_analysis.pdf
