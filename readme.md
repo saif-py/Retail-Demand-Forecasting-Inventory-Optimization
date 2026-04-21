@@ -90,6 +90,18 @@ python Forecast.py
 
 ---
 
+## Tableau Dashboard
+
+The script exports four Tableau-ready CSV files to `tableau_exports/`. See **[TABLEAU_GUIDE.md](TABLEAU_GUIDE.md)** for a complete step-by-step beginner walkthrough covering:
+
+- Installing Tableau Public (free)
+- Connecting to the CSV data sources
+- Building all 5 charts from scratch
+- Assembling the interactive dashboard
+- Publishing to Tableau Public for your portfolio
+
+---
+
 ## Output
 
 Running `Forecast.py` produces `forecast_analysis.png` — a 5-panel dashboard:
@@ -111,7 +123,7 @@ It also creates Tableau-ready CSV exports in `tableau_exports/`:
 
 ## Skills Demonstrated
 
-`Time-Series Forecasting` · `Facebook Prophet` · `Supply Chain Analytics` · `Inventory Optimization` · `Python (Pandas, NumPy, Matplotlib)` · `Business Impact Quantification` · `Data Visualization`
+`Time-Series Forecasting` · `Facebook Prophet` · `Supply Chain Analytics` · `Inventory Optimization` · `Python (Pandas, NumPy, Matplotlib)` · `Business Impact Quantification` · `Data Visualization` · `Tableau`
 
 ---
 
